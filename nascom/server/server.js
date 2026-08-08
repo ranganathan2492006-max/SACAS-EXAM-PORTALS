@@ -5,7 +5,6 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { generateChatReply } from './config/gemini.js';
 
@@ -24,7 +23,12 @@ app.use(helmet({
     directives: {
       "img-src": ["'self'", "https:", "data:", "https://lh3.googleusercontent.com"],
       "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      "connect-src": ["'self'", "https:", "http:", "http://localhost:5000", "http://localhost:5173", "https://generativelanguage.googleapis.com"]
+      "connect-src": [
+        "'self'",
+        "http://localhost:5000",
+        "http://localhost:5173",
+        "https://generativelanguage.googleapis.com"
+      ]
     }
   }
 }));
@@ -32,19 +36,27 @@ app.use(helmet({
 // Enable Gzip compression
 app.use(compression());
 
-// Configure CORS origins for development & production hosting
+// Configure strict CORS origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: (origin, callback) => callback(null, true),
+  origin: allowedOrigins,
   credentials: true
 }));
 
 // Rate limiting to prevent DDoS or Gemini API misuse
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 150, 
+  windowMs: 15 * 60 * 1000,
+  max: 150,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many requests from this IP. Please try again after 15 minutes." }
+  message: {
+    error: "Too many requests from this IP. Please try again after 15 minutes."
+  }
 });
 
 app.use('/api/', apiLimiter);
@@ -86,7 +98,7 @@ const assessments = [
         type: 'choice',
         options: [
           'Restart the entire computer system.',
-          'Click the Lock Icon (🔒) in the browser\'s address URL bar and change Camera to \'Allow\'.',
+          "Click the Lock Icon (🔒) in the browser's address URL bar and change Camera to 'Allow'.",
           'Contact technical support immediately to schedule a manual review.',
           'Disable all security shields and firewalls.'
         ],
@@ -95,7 +107,7 @@ const assessments = [
       {
         id: 'pq-q3',
         title: 'Tab Focus Violations',
-        text: 'What happens on the proctor\'s console when a student navigates to an external browser tab during an active test?',
+        text: "What happens on the proctor's console when a student navigates to an external browser tab during an active test?",
         type: 'choice',
         options: [
           'The exam is immediately terminated and marked as failed.',
@@ -121,7 +133,7 @@ const assessments = [
       {
         id: 'pq-q5',
         title: 'Submission Glitches',
-        text: 'If a student experiences a submission error or the \'Finish Test\' button freezes, what should they do?',
+        text: "If a student experiences a submission error or the 'Finish Test' button freezes, what should they do?",
         type: 'choice',
         options: [
           'Close the browser tab and log in tomorrow.',
@@ -217,15 +229,26 @@ app.get('/api/chats', (req, res) => {
 
 // API Route: Chat proxying to Gemini
 app.post('/api/chat', async (req, res) => {
-  const { message, history, assessmentContext, studentEmail } = req.body;
+  const {
+    message,
+    history,
+    assessmentContext,
+    studentEmail
+  } = req.body;
 
   if (!message) {
-    return res.status(400).json({ error: "Message is required." });
+    return res.status(400).json({
+      error: "Message is required."
+    });
   }
 
   try {
-    const reply = await generateChatReply(message, history || [], assessmentContext || {});
-    
+    const reply = await generateChatReply(
+      message,
+      history || [],
+      assessmentContext || {}
+    );
+
     // Save to chatLogs for Admin review
     chatLogs.push({
       id: 'chat-' + Math.random().toString(36).substr(2, 9),
@@ -237,9 +260,13 @@ app.post('/api/chat', async (req, res) => {
     });
 
     res.json({ reply });
+
   } catch (error) {
     console.error("Chat routing error:", error);
-    res.status(500).json({ error: "Failed to generate AI response." });
+
+    res.status(500).json({
+      error: "Failed to generate AI response."
+    });
   }
 });
 
@@ -253,25 +280,40 @@ app.patch('/api/incidents/:id', (req, res) => {
   const { id } = req.params;
   const { resolved } = req.body;
 
-  const incident = incidentsLog.find(inc => inc.id === id);
+  const incident = incidentsLog.find(
+    inc => inc.id === id
+  );
+
   if (!incident) {
-    return res.status(404).json({ error: "Incident not found" });
+    return res.status(404).json({
+      error: "Incident not found"
+    });
   }
 
   if (resolved !== undefined) {
     incident.resolved = resolved;
   }
 
-  console.log(`\n✅ [INCIDENT STATUS UPDATED] ID: ${id} | Resolved: ${incident.resolved}\n`);
+  console.log(
+    `\n✅ [INCIDENT STATUS UPDATED] ID: ${id} | Resolved: ${incident.resolved}\n`
+  );
+
   res.json(incident);
 });
 
 // API Route: Report/Log telemetry incidents
 app.post('/api/incidents', (req, res) => {
-  const { assessmentId, category, description, timestamp } = req.body;
+  const {
+    assessmentId,
+    category,
+    description,
+    timestamp
+  } = req.body;
 
   if (!assessmentId || !category || !description) {
-    return res.status(400).json({ error: "Missing incident report parameters." });
+    return res.status(400).json({
+      error: "Missing incident report parameters."
+    });
   }
 
   const newIncident = {
@@ -285,7 +327,6 @@ app.post('/api/incidents', (req, res) => {
 
   incidentsLog.push(newIncident);
 
-  // Print incident telemetry to terminal with custom formatting to alert developers
   console.log("\n⚠️ [INCIDENT TELEMETRY REPORTED]");
   console.log(`- ID:          ${newIncident.id}`);
   console.log(`- Assessment:  ${newIncident.assessmentId}`);
@@ -295,10 +336,10 @@ app.post('/api/incidents', (req, res) => {
   console.log(`- Timestamp:   ${newIncident.timestamp}`);
   console.log("---------------------------------\n");
 
-  res.status(201).json({ 
-    status: 'success', 
-    message: 'Incident logged successfully', 
-    incidentId: newIncident.id 
+  res.status(201).json({
+    status: 'success',
+    message: 'Incident logged successfully',
+    incidentId: newIncident.id
   });
 });
 
@@ -309,9 +350,16 @@ app.get('/api/tickets', (req, res) => {
 
 // API Route: Create a new support ticket
 app.post('/api/tickets', (req, res) => {
-  const { studentEmail, subject, description } = req.body;
+  const {
+    studentEmail,
+    subject,
+    description
+  } = req.body;
+
   if (!subject || !description) {
-    return res.status(400).json({ error: "Subject and Description are required." });
+    return res.status(400).json({
+      error: "Subject and Description are required."
+    });
   }
 
   const newTicket = {
@@ -324,7 +372,11 @@ app.post('/api/tickets', (req, res) => {
   };
 
   tickets.push(newTicket);
-  console.log(`\n🎟️ [TICKET CREATED] ID: ${newTicket.id} | Email: ${newTicket.studentEmail} | Subject: "${newTicket.subject}"\n`);
+
+  console.log(
+    `\n🎟️ [TICKET CREATED] ID: ${newTicket.id} | Email: ${newTicket.studentEmail} | Subject: "${newTicket.subject}"\n`
+  );
+
   res.status(201).json(newTicket);
 });
 
@@ -333,45 +385,63 @@ app.patch('/api/tickets/:id', (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  const ticket = tickets.find(t => t.id === id);
+  const ticket = tickets.find(
+    t => t.id === id
+  );
+
   if (!ticket) {
-    return res.status(404).json({ error: "Ticket not found." });
+    return res.status(404).json({
+      error: "Ticket not found."
+    });
   }
 
   if (status) {
     ticket.status = status;
   }
 
-  console.log(`\n✅ [TICKET UPDATED] ID: ${id} | Status: ${ticket.status}\n`);
+  console.log(
+    `\n✅ [TICKET UPDATED] ID: ${ticket.id} | Status: ${ticket.status}\n`
+  );
+
   res.json(ticket);
 });
 
-// Serve static client build folder in production or if client dist exists
-const clientDistPath = path.join(__dirname, '../client/dist');
-if (process.env.NODE_ENV === 'production' || fs.existsSync(clientDistPath)) {
+// Serve static client build folder in production
+if (process.env.NODE_ENV === 'production') {
+  const clientDistPath = path.join(__dirname, '../client/dist');
+
   app.use(express.static(clientDistPath));
-  
+
   // Catch-all route to serve index.html for React Router SPA routes
-  app.get('*', (req, res, next) => {
+  // FIXED: Express 5 does not accept app.get('*', ...)
+  app.get(/.*/, (req, res, next) => {
     if (req.path.startsWith('/api/')) {
       return next();
     }
-    res.sendFile(path.join(clientDistPath, 'index.html'));
+
+    res.sendFile(
+      path.join(clientDistPath, 'index.html')
+    );
   });
+
 } else {
   // Root ping test endpoint for development
   app.get('/', (req, res) => {
-    res.send('SACAS EXAM PORTAL Secure server is online.');
+    res.send(
+      'SACAS EXAM PORTAL Secure server is online.'
+    );
   });
 }
 
 // Start Server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`=========================================`);
-  console.log(`SACAS EXAM PORTAL Express server started on port ${PORT}`);
-  console.log(`Serving API routes:`);
-  console.log(`- GET  /api/assessments`);
-  console.log(`- POST /api/chat`);
-  console.log(`- POST /api/incidents`);
-  console.log(`=========================================`);
+app.listen(PORT, () => {
+  console.log('=========================================');
+  console.log(
+    `SACAS EXAM PORTAL Express server started on port ${PORT}`
+  );
+  console.log('Serving API routes:');
+  console.log('- GET  /api/assessments');
+  console.log('- POST /api/chat');
+  console.log('- POST /api/incidents');
+  console.log('=========================================');
 });
