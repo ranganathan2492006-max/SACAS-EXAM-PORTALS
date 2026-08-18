@@ -24,7 +24,7 @@ export default function AdminDashboard() {
 
   async function fetchData() {
     try {
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || '';
       const [incResponse, chatResponse, ticketResponse] = await Promise.all([
         axios.get(`${serverUrl}/api/incidents`),
         axios.get(`${serverUrl}/api/chats`),
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
 
   async function toggleResolve(id, currentStatus) {
     try {
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || '';
       await axios.patch(`${serverUrl}/api/incidents/${id}`, {
         resolved: !currentStatus
       });
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
 
   async function toggleResolveTicket(id, currentStatus) {
     try {
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || '';
       const newStatus = currentStatus === 'Resolved' ? 'Open' : 'Resolved';
       const response = await axios.patch(`${serverUrl}/api/tickets/${id}`, {
         status: newStatus

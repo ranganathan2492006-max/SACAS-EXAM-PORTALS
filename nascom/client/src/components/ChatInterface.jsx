@@ -69,7 +69,7 @@ How can I support you today?`,
     setLoading(true);
 
     try {
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || '';
       
       // Make request to Express server
       const response = await axios.post(`${serverUrl}/api/chat`, {
@@ -132,7 +132,7 @@ How can I support you today?`,
     if (!ticketSubject.trim() || !ticketDescription.trim()) return;
     setRaisingTicket(true);
     try {
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || '';
       const response = await axios.post(`${serverUrl}/api/tickets`, {
         studentEmail: currentUser?.email || 'guest@test.com',
         subject: ticketSubject,

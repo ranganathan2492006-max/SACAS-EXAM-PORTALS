@@ -23,7 +23,7 @@ export default function IncidentLogger({ assessmentId, onClose, onLogged }) {
     setSubmitting(true);
     try {
       // Post to Express backend
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || '';
       await axios.post(`${serverUrl}/api/incidents`, {
         assessmentId,
         category,

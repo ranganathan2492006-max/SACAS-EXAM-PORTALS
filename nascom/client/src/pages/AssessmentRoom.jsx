@@ -31,7 +31,7 @@ export default function AssessmentRoom() {
   useEffect(() => {
     async function fetchAssessmentDetails() {
       try {
-        const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+        const serverUrl = import.meta.env.VITE_SERVER_URL || '';
         const response = await axios.get(`${serverUrl}/api/assessments`);
         const found = response.data.find(a => a.id === id);
         if (found) {

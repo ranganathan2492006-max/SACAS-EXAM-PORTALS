@@ -30,7 +30,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+        const serverUrl = import.meta.env.VITE_SERVER_URL || '';
         const [assessResponse, ticketResponse] = await Promise.all([
           axios.get(`${serverUrl}/api/assessments`),
           axios.get(`${serverUrl}/api/tickets`).catch(() => ({ data: [] }))

@@ -30,7 +30,7 @@ export default function ContactSupport() {
     setError('');
 
     try {
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || '';
       await axios.post(`${serverUrl}/api/incidents`, {
         assessmentId: 'general-support',
         category: category,
